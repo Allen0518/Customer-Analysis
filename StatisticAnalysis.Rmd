@@ -27,8 +27,9 @@ head(df)
 - Fill in missing values in income by calculating the group mean (by Education).
 - Convert the birthdates to ages for presentation in subsequent visual analyses.
 - Merge Kidhome and Teenhome into a single feature called Children to reduce the number of required features.
-- 
-
+- Calculate the total expenditure of consumers using MntWines + MntFruits + MntMeatProducts + MntFishProducts + MntSweetProducts + MntGoldProds
+- Calculate the number of times consumers participate in all campaigns
+- Calculate the total number of consumer purchases by summing the purchase frequencies across all channels
 ```{r}
 # Fill NA on variable "Income"
 df <- df %>%
@@ -39,15 +40,6 @@ df <- df %>%
 # Convert 'Year_Birth' to 'Age' for better understanding
 df$Age <- 2024 - df$Year_Birth
 df <- df[, !(names(df) %in% "Year_Birth")]  # Remove the original 'Year_Birth' column
-
-
-# "Education" variable
-#df$Education <- recode(df$Education,
-                       #"Basic" = "Undergraduate",
-                       #"2n Cycle" = "Undergraduate",
-                       #"Graduation" = "Graduate",
-                       #"Master" = "Postgraduate",
-                       #"PhD" = "Postgraduate")
 
 # Merge 'Kidhome' and 'Teenhome' into 'Children'
 df$Children <- df$Kidhome + df$Teenhome
@@ -71,6 +63,11 @@ head(df)
 ```
 
 # 4.Descriptive Statistic
+ **Descriptive Statistics:**
+
+- Calculate basic statistics for numerical variables: mean, median, standard deviation, minimum, and maximum.
+- Plot the distribution for the important features.
+- nalyze the correlation between features.
 ```{r}
 # numerical variables
 print('Basic Statistic for numurical variables')
@@ -128,6 +125,7 @@ for (feature in categorical_features) {
 ```
 
 # Customer Segmentation Analysis
+- Utilize a scatter plot to analyze the correlation between numerical variables and the total purchase amount of consumers.
 ```{r}
 # Explore relationship
 
@@ -150,6 +148,7 @@ for (feature in numeric_features) {
 
 ```
 
+- Utilize a pair plot to analyze the distribution of "Education," "Family Status" in relation to both total income and total expenditure. From this, we can observe that consumers with a university or master's education and an Absurd marital status tend to have the highest expenditure.
 
 ```{r}
 # Analyze "Income" on diff "Education"
@@ -180,6 +179,8 @@ print(plt)
 
 ```
 # Purchasing Behavior Analysis
+- From the pie chart, we can deduce that the majority of revenue comes from the consumption of alcoholic beverages.
+- Furthermore, from the second and third charts, it is evident that the largest consumer group for alcoholic beverages consists of individuals with a marital status of "Married," "Single," or an educational background of "University.
 ```{r}
 # Specify the product categories
 product_categories <- c('MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds')
@@ -244,6 +245,8 @@ print(bar_plot)
 
 
 ```
+
+- From the following box plot, it is observed that the total expenditure decreases with an increase in the number of children, with a notable drop around the birth of the first child. This result is counterintuitive, but when combined with the pie chart above, we can deduce that since half of the overall consumption revenue comes from alcoholic beverages, a reduction in purchasing quantity with the birth of children becomes a socially conventional phenomenon.
 ```{r}
 
 # Box plot
@@ -261,6 +264,7 @@ print(box_plot)
 ```
 
 # Web and Store Purchases Analysis
+
 ```{r}
 # Create box plots for each purchase channel
 purchase_channels <- c('NumWebPurchases', 'NumCatalogPurchases', 'NumStorePurchases')
@@ -313,6 +317,13 @@ box_plot <- ggplot(df, aes(x = Marital_Status, y = NumDealsPurchases)) +
 print(box_plot)
 ```
 # Hypothesis Testing
+**Income Affects Spending**
+
+- Null Hypothesis (H0): There is no significant difference in spending between different income groups.
+- Alternative Hypothesis (H1): Customers with higher income levels spend more than customers with lower income levels.
+
+From the results, it is evident that there is a significant positive correlation in the statistical analysis between the income level of consumers and their expenditure on alcoholic beverages and meat products.
+
 ```{r}
 # Hypothesis: Income Affects Spending
 
@@ -360,6 +371,12 @@ posthoc_fruits <- TukeyHSD(anova_result_fruits)
 print(posthoc_fruits)
 
 ```
+
+**Education Influences Total Spending**
+- Null Hypothesis (H0): Education level does not impact total spending.
+- Alternative Hypothesis (H1): Customers with higher education levels have a higher total spending.
+
+The results indicate that there is a statistically significant positive correlation between the educational background of consumers and their expenditure.
 ```{r}
 # Hypothesis: Education Influences Total Spending
 # Assuming your dataframe is named 'customer_data'
@@ -393,6 +410,11 @@ posthoc_education <- TukeyHSD(anova_result_education)
 print(posthoc_education)
 
 ```
+**Parenthood Affects Total Spending**
+- Null Hypothesis (H0): There is no significant difference in total spending between customers with and without children.
+- Alternative Hypothesis (H1): Customers with children have different total spending habits compared to customers without children.
+
+From the previous box plot, we observed a negative correlation between the number of children and expenditure. We can further validate this using a t-test. The results indicate that consumers with children have significantly lower total expenditure compared to those without children.
 ```{r}
 # Hypothesis: Parenthood Affects Total Spending
 # Assuming your dataframe is named 'customer_data'
@@ -413,6 +435,12 @@ t_test_result <- t.test(Total_Spent ~ Parental_Status, data = customer_data)
 print(t_test_result)
 
 ```
+**Age and Spending Habits**
+- Null Hypothesis (H0): There is no correlation between age and total spending.
+- Alternative Hypothesis (H1): Younger customers exhibit different spending patterns compared to older customers.
+
+The t-value is 5.2986, and the corresponding p-value is 1.282e-07. This extremely small p-value indicates that we can reject the null hypothesis, i.e., the true correlation is not equal to 0. This implies that the correlation between age and total spending is statistically significant.
+
 ```{r}
 # Hypothesis: Age and Spending Habits
 # Check the correlation between age and total spending
@@ -424,6 +452,14 @@ correlation_result <- cor.test(df$Age,
 print(correlation_result)
 
 ```
+**Web Visits Influence Web Purchases**
+- Null Hypothesis (H0): The number of web visits does not affect the number of web purchases.
+- Alternative Hypothesis (H1): Customers who visit the website more frequently are more likely to make web purchases.
+
+From this test, we can observe a statistically significant negative correlation between the number of website visits and the number of website purchases.
+
+One possible explanation is that consumers who spend more time browsing online may engage in window shopping or informational searches without necessarily intending to make immediate purchases. On the other hand, those who spend less time browsing might have clearer preferences or specific purchase intentions, leading to more direct and purposeful buying behavior. 
+
 ```{r}
 # Hypothesis: Web Visits Influence Web Purchases
 # Check the correlation between web visits and web purchases
