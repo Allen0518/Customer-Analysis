@@ -1,0 +1,443 @@
+---
+title: "CustomerPersonalityAnalysis(Statistic)"
+author: "Allen Wu"
+date: "2023-11-16"
+output: html_document
+---
+
+
+# 1.import labarary
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(car)
+```
+
+
+
+# 2.import dataset
+```{r}
+df = read.csv("marketing_campaign.csv", sep = "\t", header=T)
+head(df)
+```
+
+
+# 3.Data Cleaning
+- Fill in missing values in income by calculating the group mean (by Education).
+- Convert the birthdates to ages for presentation in subsequent visual analyses.
+- Merge Kidhome and Teenhome into a single feature called Children to reduce the number of required features.
+- 
+
+```{r}
+# Fill NA on variable "Income"
+df <- df %>%
+  group_by(Education) %>%
+  mutate(Income = ifelse(is.na(Income), mean(Income, na.rm = TRUE), Income)) %>%
+  ungroup()
+
+# Convert 'Year_Birth' to 'Age' for better understanding
+df$Age <- 2024 - df$Year_Birth
+df <- df[, !(names(df) %in% "Year_Birth")]  # Remove the original 'Year_Birth' column
+
+
+# "Education" variable
+#df$Education <- recode(df$Education,
+                       #"Basic" = "Undergraduate",
+                       #"2n Cycle" = "Undergraduate",
+                       #"Graduation" = "Graduate",
+                       #"Master" = "Postgraduate",
+                       #"PhD" = "Postgraduate")
+
+# Merge 'Kidhome' and 'Teenhome' into 'Children'
+df$Children <- df$Kidhome + df$Teenhome
+df <- df[, !(names(df) %in% c("Kidhome", "Teenhome"))]  # Remove the original 'Kidhome' and 'Teenhome' columns
+
+# Referring to the parenthood status
+df$Parental_Status <- as.integer(df$Children != 0)
+
+# Count Customer's total spent
+df$Total_Spent <- df$MntWines + df$MntFruits + df$MntMeatProducts +
+                  df$MntFishProducts + df$MntSweetProducts + df$MntGoldProds
+
+# Count total Cmp accepted by Customer
+df$Total_Offer <- df$AcceptedCmp1 + df$AcceptedCmp2 + df$AcceptedCmp3 +
+                  df$AcceptedCmp4 + df$AcceptedCmp5
+
+# Count total purchases by all methods
+df$Num_Total_Purchases <- df$NumWebPurchases + df$NumCatalogPurchases +
+                          df$NumStorePurchases + df$NumDealsPurchases
+head(df)
+```
+
+# 4.Descriptive Statistic
+```{r}
+# numerical variables
+print('Basic Statistic for numurical variables')
+summary(df)
+
+# categorical variables
+print("Basic Statistic for categorical variables")
+table_counts <- table(df$Education)
+percentage_counts <- prop.table(table_counts) * 100
+summary_table <- data.frame(Counts = table_counts, Percentages = percentage_counts)
+print(summary_table)
+
+table_counts <- table(df$Marital_Status)
+percentage_counts <- prop.table(table_counts) * 100
+summary_table <- data.frame(Counts = table_counts, Percentages = percentage_counts)
+print(summary_table)
+
+```
+```{r}
+# Plotting Distribution
+
+# Specify numeric features
+numeric_features <- c('Total_Spent', 'Num_Total_Purchases', 'Age', 'Income', 'Recency', 'MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds')
+
+# Loop through numeric features to create histograms
+for (feature in numeric_features) {
+  # Set up the plot
+  plt <- ggplot(df, aes(x = .data[[feature]])) +
+    geom_histogram(binwidth = (max(df[[feature]] ) - min(df[[feature]])) / 30, fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("Distribution of", feature),
+         x = feature,
+         y = "Frequency") +
+    theme_minimal()
+
+  # Show the plot
+  print(plt)
+}
+
+# Specify categorical features
+categorical_features <- c('Education', 'Marital_Status')
+
+# Loop through categorical features to create count plots
+for (feature in categorical_features) {
+  # Set up the plot
+  plt <- ggplot(df, aes(x = .data[[feature]])) +
+    geom_bar(fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("Count of customers by", feature),
+         x = feature,
+         y = "Count") +
+    theme_minimal()
+
+  # Show the plot
+  print(plt)
+}
+```
+
+# Customer Segmentation Analysis
+```{r}
+# Explore relationship
+
+# Scatter Plot
+# Select the numeric features
+numeric_features <- c('Total_Spent', 'Num_Total_Purchases', 'Age', 'Income', 'Recency', 'MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds')
+
+# Create scatter plots for each numeric feature against Total_Spent
+for (feature in numeric_features) {
+  scatter_plot <- ggplot(df, aes(x = df[[feature]], y = Total_Spent)) +
+    geom_point() +
+    labs(title = paste("Scatter Plot between", feature, "and Total_Spent"),
+         x = feature,
+         y = "Total_Spent") +
+    theme_minimal()
+
+  print(scatter_plot)
+}
+  
+
+```
+
+
+```{r}
+# Analyze "Income" on diff "Education"
+# Set up the plot with group means
+plt <- ggplot(df, aes(x = Education, y = Income, fill = Marital_Status)) +
+  stat_summary(fun = mean, geom = "bar", position = "dodge") +
+  labs(title = "Mean Income Across Demographic Groups",
+       x = "Education",
+       y = "Mean Income",
+       fill = "Marital Status") +
+  theme_minimal()
+
+# Show the plot
+print(plt)
+
+# Analyze "Total Spend" on diff "Education"
+# Set up the plot with group means
+plt <- ggplot(df, aes(x = Education, y = Total_Spent, fill = Marital_Status)) +
+  stat_summary(fun = mean, geom = "bar", position = "dodge") +
+  labs(title = "Mean Income Across Demographic Groups",
+       x = "Education",
+       y = "Mean Total_Spent",
+       fill = "Marital Status") +
+  theme_minimal()
+
+# Show the plot
+print(plt)
+
+```
+# Purchasing Behavior Analysis
+```{r}
+# Specify the product categories
+product_categories <- c('MntWines', 'MntFruits', 'MntMeatProducts', 'MntFishProducts', 'MntSweetProducts', 'MntGoldProds')
+
+# Create pie charts for each product category
+# Calculate percentage of spending for each product category
+percentage_spending <- colMeans(df[, product_categories]) / sum(colMeans(df[, product_categories])) * 100
+
+# Create a data frame for the pie chart
+pie_data <- data.frame(category = names(percentage_spending), percentage = percentage_spending)
+
+# Create a pie chart
+pie_chart <- ggplot(pie_data, aes(x = "", y = percentage, fill = category)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y") +
+  labs(title = "Percentage of Spending on Different Product Categories",
+       x = NULL,
+       y = NULL) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+# Show the pie chart
+print(pie_chart)
+
+# Calculate percentage of spending for each product category by Marital_Status
+percentage_spending <- aggregate(df[, product_categories], by = list(df$Marital_Status), FUN = function(x) sum(x) / sum(df[, product_categories]) * 100)
+
+# Reshape the data for plotting
+percentage_spending_long <- tidyr::gather(percentage_spending, key = "Product_Category", value = "Percentage", -Group.1)
+
+# Create a bar plot
+bar_plot <- ggplot(percentage_spending_long, aes(x = Product_Category, y = Percentage, fill = factor(Group.1))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Percentage of Spending on Different Product Categories by Marital Status",
+       x = "Product Category",
+       y = "Percentage",
+       fill = "Marital Status") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(bar_plot)
+
+
+# Calculate percentage of spending for each product category by "Education"
+percentage_spending <- aggregate(df[, product_categories], by = list(df$Education), FUN = function(x) sum(x) / sum(df[, product_categories]) * 100)
+
+# Reshape the data for plotting
+percentage_spending_long <- tidyr::gather(percentage_spending, key = "Product_Category", value = "Percentage", -Group.1)
+
+# Create a bar plot
+bar_plot <- ggplot(percentage_spending_long, aes(x = Product_Category, y = Percentage, fill = factor(Group.1))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Percentage of Spending on Different Product Categories by Education",
+       x = "Product Category",
+       y = "Percentage",
+       fill = "Education") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(bar_plot)
+
+
+
+```
+```{r}
+
+# Box plot
+box_plot <- ggplot(df, aes(x = as.factor(Children), y = Total_Spent)) +
+  geom_boxplot(fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Total Spending by Number of Children/Teenagers",
+       x = "Number of Children/Teenagers",
+       y = "Total Spending") +
+  theme_minimal()
+
+# Show the plots
+print(box_plot)
+
+
+```
+
+# Web and Store Purchases Analysis
+```{r}
+# Create box plots for each purchase channel
+purchase_channels <- c('NumWebPurchases', 'NumCatalogPurchases', 'NumStorePurchases')
+
+# Create box plots
+box_plots <- list()
+
+for (channel in purchase_channels) {
+  box_plot <- ggplot(df, aes(x = as.factor(channel), y = df[[channel]])) +
+    geom_boxplot(fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("Distribution of Purchases through", channel),
+         x = "Purchase Channel",
+         y = "Number of Purchases") +
+    theme_minimal()
+
+  box_plots[[channel]] <- box_plot
+}
+
+# Print the box plots
+for (channel in purchase_channels) {
+  print(box_plots[[channel]])
+}
+
+# Plotting box plot for purchase chanel by Marital_Status
+for (channel in purchase_channels) {
+  box_plot <- ggplot(df, aes(x = Marital_Status, y = df[[channel]])) +
+    geom_boxplot(fill = "skyblue", color = "black", alpha = 0.7) +
+    labs(title = paste("Distribution of", channel, "by Marital_Status"),
+         x = "Marital_Status",
+         y = paste("Number of", channel)) +
+    theme_minimal()
+
+  # Show the box plot for each channel
+  print(box_plot)
+}
+```
+
+# Discount Analysis
+```{r}
+# Analyze the distribution of deals purchases
+# Create a box plot for deals purchases by Marital_Status
+box_plot <- ggplot(df, aes(x = Marital_Status, y = NumDealsPurchases)) +
+  geom_boxplot(fill = "skyblue", color = "black", alpha = 0.7) +
+  labs(title = "Distribution of Deals Purchases by Marital_Status",
+       x = "Marital_Status",
+       y = "Number of Deals Purchases") +
+  theme_minimal()
+
+# Show the box plot
+print(box_plot)
+```
+# Hypothesis Testing
+```{r}
+# Hypothesis: Income Affects Spending
+
+# Create a new variable 'IncomeGroup' based on income levels
+customer_data <- df %>%
+  mutate(IncomeGroup = cut(Income, breaks = c(0, 30000, 60000, 90000, 120000, Inf),
+                           labels = c("0-30k", "30k-60k", "60k-90k", "90k-120k", "120k+"),
+                           include.lowest = TRUE))
+
+# Check the summary statistics for the spending variables by income group
+summary_table <- customer_data %>%
+  group_by(IncomeGroup) %>%
+  summarise(
+    Mean_Wines = mean(MntWines),
+    Mean_Fruits = mean(MntFruits),
+    Mean_MeatProducts = mean(MntMeatProducts),
+    Mean_FishProducts = mean(MntFishProducts),
+    Mean_SweetProducts = mean(MntSweetProducts),
+    Mean_GoldProds = mean(MntGoldProds)
+  )
+
+# Print summary table
+print(summary_table)
+
+# Perform ANOVA test for each spending variable
+# Example for 'Wines' spending
+anova_result_wines <- aov(MntWines ~ IncomeGroup, data = customer_data)
+print(summary(anova_result_wines))
+
+# Repeat the ANOVA test for other spending variables
+# Example for 'Fruits' spending
+anova_result_fruits <- aov(MntFruits ~ IncomeGroup, data = customer_data)
+print(summary(anova_result_fruits))
+
+# Repeat for other spending variables
+
+# Post-hoc pairwise t-tests to identify specific income groups that differ significantly
+# Example for 'Wines' spending
+posthoc_wines <- TukeyHSD(anova_result_wines)
+print(posthoc_wines)
+
+# Repeat post-hoc tests for other spending variables
+# Example for 'Fruits' spending
+posthoc_fruits <- TukeyHSD(anova_result_fruits)
+print(posthoc_fruits)
+
+```
+```{r}
+# Hypothesis: Education Influences Total Spending
+# Assuming your dataframe is named 'customer_data'
+
+# Create a new variable 'EducationGroup' based on education levels
+customer_data <- customer_data %>%
+  mutate(EducationGroup = as.factor(Education))
+
+# Check unique values in the 'Education' column and recode if necessary
+unique(customer_data$Education)
+
+# Recode if needed (replace 'Basic' with a specific level)
+# customer_data$Education <- recode(customer_data$Education, 'Basic' = 'Basic_Level')
+
+# Check the summary statistics for the spending variables by education group
+summary_table_education <- customer_data %>%
+  group_by(EducationGroup) %>%
+  summarise(
+    Total_Spending = MntWines + MntFruits + MntMeatProducts + MntFishProducts + MntSweetProducts + MntGoldProds
+  )
+
+# Print summary table
+print(summary_table_education)
+
+# Perform ANOVA test for total spending
+anova_result_education <- aov(Total_Spent ~ EducationGroup, data = customer_data)
+print(summary(anova_result_education))
+
+# Post-hoc pairwise t-tests to identify specific education groups that differ significantly
+posthoc_education <- TukeyHSD(anova_result_education)
+print(posthoc_education)
+
+```
+```{r}
+# Hypothesis: Parenthood Affects Total Spending
+# Assuming your dataframe is named 'customer_data'
+
+# Create a new binary variable 'HasChildren' indicating whether the customer has children
+customer_data <- df %>%
+  mutate(HasChildren = ifelse(Children > 0, "With Children", "Without Children"))
+
+# Check the summary statistics for the spending variables by parenthood status
+summary_table_parenthood <- customer_data %>%
+  group_by(HasChildren) %>%
+  summarise(
+    Total_Spending = MntWines + MntFruits + MntMeatProducts + MntFishProducts + MntSweetProducts + MntGoldProds
+  )
+
+# Perform t-test for total spending between customers with and without children
+t_test_result <- t.test(Total_Spent ~ Parental_Status, data = customer_data)
+print(t_test_result)
+
+```
+```{r}
+# Hypothesis: Age and Spending Habits
+# Check the correlation between age and total spending
+correlation_result <- cor.test(df$Age, 
+                               df$Total_Spent, 
+                               method = "pearson")
+
+# Print correlation result
+print(correlation_result)
+
+```
+```{r}
+# Hypothesis: Web Visits Influence Web Purchases
+# Check the correlation between web visits and web purchases
+correlation_result <- cor.test(df$NumWebVisitsMonth, 
+                               df$NumWebPurchases, 
+                               method = "pearson")
+
+# Print correlation result
+print(correlation_result)
+
+# Perform linear regression
+regression_model <- lm(NumWebPurchases ~ NumWebVisitsMonth, data = customer_data)
+
+# Print regression summary
+summary(regression_model)
+```
+

@@ -1,0 +1,17 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# 1. Import Labrary
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(car)
+```
+
+```{r}
+
+```
+
