@@ -20,5 +20,5 @@ We implemented the widely used RFM analysis in the marketing domain. By evaluati
 Both k-means and BIRCH clustering algorithms were applied for customer segmentation analysis. Beyond clustering, in-depth analysis of cluster results was conducted, using visually intuitive charts to examine the consumption characteristics of individual clusters. This assists decision-makers in implementing targeted marketing strategies based on distinct customer segments.
 
 
-Language used : Python, R
+Language used : Python, R。
 Development Tools : Jupyter Notebook, R markdoen
